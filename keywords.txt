@@ -1,0 +1,27 @@
+#######################################
+# Syntax Coloring Map For Dallas Flash Memory
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+DallasEPROM	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+getAddress	KEYWORD2
+setAddress	KEYWORD2
+validAddress	KEYWORD2
+isSupported	KEYWORD2
+isConnected	KEYWORD2
+readPage	KEYWORD2
+writePage	KEYWORD2
+lockPage	KEYWORD2
+isPageLocked	KEYWORD2
+search	KEYWORD2
+getDeviceName	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
