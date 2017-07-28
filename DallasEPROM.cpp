@@ -1,5 +1,5 @@
 // Maxim/Dallas 1-Wire EPROM & EEPROM library for Arduino
-// Copyright (C) 2011-2014 Eric Hokanson
+// Copyright (C) 2011-2017 Eric Hokanson
 // https://github.com/pceric
 
 // This library is free software; you can redistribute it and/or
@@ -86,9 +86,9 @@ uint8_t* DallasEPROM::getAddress() {
 void DallasEPROM::setAddress(uint8_t* pAddress) {
 	int i = 0;
 	_curModelIndex = -1;
-	
+
 	memcpy(_addr, pAddress, 8);
-	
+
 	while (_chip_model_list[i].id) {
 		if (_addr[0] == _chip_model_list[i].id) {
 			_curModelIndex = i;
@@ -107,7 +107,7 @@ const char* DallasEPROM::getDeviceName() {
 
 bool DallasEPROM::isConnected() {
 	uint8_t tmpAddress[8];
-	
+
 	if (!_wire->reset())
 		return false;
 	_wire->reset_search();
@@ -136,16 +136,16 @@ int DallasEPROM::readPage(uint8_t* data, int page) {
 		_wire->write(command[0]);
 		_wire->write(command[1]);
 		_wire->write(command[2]);
-		
+
 		if (OneWire::crc8(command, 3) != _wire->read())
 			return CRC_MISMATCH;
-		
+
 		if ((new_addr = _wire->read()) != 0xFF)
 			address = new_addr;
 	}
 
 	byte command[] = { READMEMORY, (byte) address, (byte)(address >> 8) };
-	
+
 	// send the command and starting address
 	_wire->reset();
 	_wire->select(_addr);
@@ -161,7 +161,7 @@ int DallasEPROM::readPage(uint8_t* data, int page) {
 	for (int i = 0; i < 32; i++) {
 		data[i] = _wire->read();
 	}
-	
+
 	// TODO: On EPROM device you can check the CRC post read
 
 	return 0;
@@ -209,7 +209,7 @@ int DallasEPROM::writePage(uint8_t* data, int page) {
 		digitalWrite(_progPin, LOW);
 	}
 	delayMicroseconds(500);
-	
+
 	// Check the first byte for proper burn
 	if (command[3] != _wire->read())
 		return COPY_FAILURE;
@@ -271,7 +271,7 @@ int DallasEPROM::lockPage(int page) {
 	} else {
 		unsigned int start;
 		byte data[] = { 0x55 };  // write protect
-		
+
 		start = _chip_model_list[_curModelIndex].pages * 32 + page;
 		scratchWrite(data, 1, start);
 	}
@@ -307,13 +307,13 @@ bool DallasEPROM::isPageLocked(int page) {
 		return 1 & (status >> page);
 	} else {
 		unsigned int start;
-		
+
 		start = _chip_model_list[_curModelIndex].pages * 32 + page;
-		
+
 		_wire->write(READMEMORY);
 		_wire->write((byte)start);
 		_wire->write((byte)(start >> 8));
-		
+
 		if (_wire->read() == 0x55)
 			return true;
 		else
@@ -338,31 +338,39 @@ int DallasEPROM::scratchWrite(uint8_t* data, int length, unsigned int address) {
 	// write "length" bytes to the scratchpad
 	for (int i = 0; i < length; i++)
 		_wire->write(data[i]);
-		
-	// Read the auth code from the scratchpad and verify integrity
-	_wire->reset();
-	_wire->select(_addr);
-	_wire->write(READSTATUS);
-	_wire->read_bytes(auth, 3);
-	for (int i = 0; i < length; i++) {
-		if (_wire->read() != data[i])
-			return BAD_INTEGRITY;
-	}
 
-	// Issue copy scratchpad with auth bytes
-	_wire->reset();
-	_wire->select(_addr);
-	_wire->write(WRITESTATUS);
-	_wire->write(auth[0]);
-	_wire->write(auth[1]);
-	_wire->write(auth[2], 1);
+	if (_chip_model_list[_curModelIndex].name == "DS2430") {
+		// Issue copy scratchpad with DS2430 auth byte
+		_wire->reset();
+		_wire->select(_addr);
+		_wire->write(WRITESTATUS);
+		_wire->write(VERIFYRESUME);
+	} else {
+		// Read the auth code from the scratchpad and verify integrity
+		_wire->reset();
+		_wire->select(_addr);
+		_wire->write(READSTATUS);
+		_wire->read_bytes(auth, 3);
+		for (int i = 0; i < length; i++) {
+			if (_wire->read() != data[i])
+				return BAD_INTEGRITY;
+		}
+
+		// Issue copy scratchpad with auth bytes
+		_wire->reset();
+		_wire->select(_addr);
+		_wire->write(WRITESTATUS);
+		_wire->write(auth[0]);
+		_wire->write(auth[1]);
+		_wire->write(auth[2], 1);
+	}
 
 	// Need 10ms prog delay
 	delay(10);
 	_wire->depower();
-	
+
 	// Check for success
-	if (_wire->read() != 0xAA)
+	if (_chip_model_list[_curModelIndex].name != "DS2430" && _wire->read() != 0xAA)
 		return COPY_FAILURE;
 
 	return 0;
