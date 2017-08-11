@@ -1,4 +1,7 @@
 var searchData=
 [
-  ['verifyresume',['VERIFYRESUME',['../_dallas_e_p_r_o_m_8h.html#a403de023a596c0d25711ad44a8cf40ba',1,'DallasEPROM.h']]]
+  ['readmemory',['READMEMORY',['../_dallas_e_p_r_o_m_8h.html#a4dcdcbc9dba107654735e2cf48281f05',1,'DallasEPROM.h']]],
+  ['readmemorycrc',['READMEMORYCRC',['../_dallas_e_p_r_o_m_8h.html#acf9f180fe54b184b2c0bbef040dbe2d3',1,'DallasEPROM.h']]],
+  ['readstatus',['READSTATUS',['../_dallas_e_p_r_o_m_8h.html#afa189e3612f5b0a5a1025314890a867c',1,'DallasEPROM.h']]],
+  ['readstatusreg',['READSTATUSREG',['../_dallas_e_p_r_o_m_8h.html#a5bcdbd203d91ec4f5bf1edbdeae989d8',1,'DallasEPROM.h']]]
 ];

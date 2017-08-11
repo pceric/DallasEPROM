@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['dallasepromversion',['DALLASEPROMVERSION',['../_dallas_e_p_r_o_m_8h.html#af5e605f9c1c8ced47aee895176ed34ac',1,'DallasEPROM.h']]]
+  ['copylock',['COPYLOCK',['../_dallas_e_p_r_o_m_8h.html#aee7977a3f446f5829070729f5ac28221',1,'DallasEPROM.h']]]
 ];

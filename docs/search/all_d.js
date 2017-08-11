@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['unsupported_5fdevice',['UNSUPPORTED_DEVICE',['../group___e_r_r_o_r___g_r_o_u_p.html#gaea20c001543a37efc137796f42a2a259',1,'DallasEPROM.h']]]
+  ['search',['search',['../class_dallas_e_p_r_o_m.html#a79b27f67e9667ab4343cef8f39626cfc',1,'DallasEPROM']]],
+  ['setaddress',['setAddress',['../class_dallas_e_p_r_o_m.html#abef2685095bea401d359c8bbc2f327bf',1,'DallasEPROM']]]
 ];

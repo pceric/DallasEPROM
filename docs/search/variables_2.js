@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['name',['name',['../structmodel__type.html#a0b0fcd357ba2f37319ccecf1023d2ca8',1,'model_type']]]
+  ['id',['id',['../structmodel__type.html#a0c2346494233745ce77a1bc9510cd14f',1,'model_type']]],
+  ['iseprom',['isEPROM',['../structmodel__type.html#ace2db8a6aed6c76ec1e1712c3e211292',1,'model_type']]]
 ];

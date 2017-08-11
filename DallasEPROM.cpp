@@ -17,13 +17,13 @@
 /** Supported chips. */
 model_type _chip_model_list[] = {
 	// EPROMs
-	{ 0x09, "DS2502", 4, true },
-	{ 0x0B, "DS2505", 64, true },
+	{ 0x09, "DS2502", 4, 2, true },
+	{ 0x0B, "DS2505", 64, 2, true },
 	// EEPROMs
-	{ 0x14, "DS2430", 1, false },
-	{ 0x2D, "DS2431", 4, false },
-	{ 0x23,	"DS2433", 16, false },
-	{ 0, 0, 0, 0 }
+	{ 0x14, "DS2430", 1, 1, false },
+	{ 0x2D, "DS2431", 4, 2, false },
+	{ 0x23,	"DS2433", 16, 2, false },
+	{ 0, 0, 0, 0, 0 }
 };
 
 DallasEPROM::DallasEPROM(OneWire* rWire) {
@@ -71,6 +71,7 @@ bool DallasEPROM::search() {
 		while (_chip_model_list[i].id) {
 			if (_addr[0] == _chip_model_list[i].id) {
 				_curModelIndex = i;
+				_curModel = &_chip_model_list[i];
 				return true;
 			}
 			++i;
@@ -92,6 +93,7 @@ void DallasEPROM::setAddress(uint8_t* pAddress) {
 	while (_chip_model_list[i].id) {
 		if (_addr[0] == _chip_model_list[i].id) {
 			_curModelIndex = i;
+			_curModel = &_chip_model_list[i];
 			return;
 		}
 		++i;
@@ -100,7 +102,7 @@ void DallasEPROM::setAddress(uint8_t* pAddress) {
 
 const char* DallasEPROM::getDeviceName() {
 	if (_curModelIndex >= 0)
-		return _chip_model_list[_curModelIndex].name;
+		return _curModel->name;
 	else
 		return NULL;
 }
@@ -149,9 +151,9 @@ int DallasEPROM::readPage(uint8_t* data, int page) {
 	// send the command and starting address
 	_wire->reset();
 	_wire->select(_addr);
-	_wire->write(command[0]);
-	_wire->write(command[1]);
-	_wire->write(command[2]);
+	for (int i = 0; i <= _curModel->addrSize; i++) {
+		_wire->write(command[i]);
+	}
 
 	// Check CRC on EPROM devices
 	if (isEPROMDevice() && OneWire::crc8(command, 3) != _wire->read())
@@ -248,7 +250,7 @@ int DallasEPROM::lockPage(int page) {
 	_wire->select(_addr);
 
 	if (isEPROMDevice()) {
-		byte command[] = { WRITESTATUS, 0x00, 0x00, (1 << page) };
+		byte command[] = { WRITESTATUS, 0x00, 0x00, (byte)(1 << page) };
 
 		_wire->write(command[0]);
 		_wire->write(command[1]);
@@ -272,7 +274,7 @@ int DallasEPROM::lockPage(int page) {
 		unsigned int start;
 		byte data[] = { 0x55 };  // write protect
 
-		start = _chip_model_list[_curModelIndex].pages * 32 + page;
+		start = _curModel->pages * 32 + page;
 		scratchWrite(data, 1, start);
 	}
 
@@ -308,7 +310,7 @@ bool DallasEPROM::isPageLocked(int page) {
 	} else {
 		unsigned int start;
 
-		start = _chip_model_list[_curModelIndex].pages * 32 + page;
+		start = _curModel->pages * 32 + page;
 
 		_wire->write(READMEMORY);
 		_wire->write((byte)start);
@@ -319,6 +321,65 @@ bool DallasEPROM::isPageLocked(int page) {
 		else
 			return false;
 	}
+}
+
+int DallasEPROM::readAppReg(uint8_t* data) {
+	if (!isConnected())
+		return DEVICE_DISCONNECTED;
+	if (_curModel->name != "DS2430")
+		return UNSUPPORTED_OPP;
+
+	_wire->reset();
+	_wire->select(_addr);
+	_wire->write(READMEMORYCRC);
+	_wire->write(0x00);
+	for (int i = 0; i < 8; i++) {
+		data[i] = _wire->read();
+	}
+	return 0;
+}
+
+int DallasEPROM::writeAppReg(uint8_t* data) {
+	if (!isConnected())
+		return DEVICE_DISCONNECTED;
+	if (_curModel->name != "DS2430")
+		return UNSUPPORTED_OPP;
+
+	// Are we locked?
+	if (isAppRegLocked()) {
+		return APP_REG_LOCKED;
+	}
+
+	_wire->reset();
+	_wire->select(_addr);
+	_wire->write(WRITEAPPREG);
+	_wire->write(0x00);
+	for (int i = 0; i < 8; i++) {
+		_wire->write(data[i]);
+	}
+
+	_wire->reset();
+	_wire->select(_addr);
+	_wire->write(COPYLOCK);
+	_wire->write(VERIFYRESUME);
+	// Need 10ms prog delay
+	delay(10);
+
+	return 0;
+}
+
+bool DallasEPROM::isAppRegLocked() {
+	if (_curModel->name != "DS2430")
+		return true;
+
+	_wire->reset();
+	_wire->select(_addr);
+	_wire->write(READSTATUSREG);
+	_wire->write(0x00);
+	if (_wire->read() == 0xFC) {
+		return true;
+	}
+	return false;
 }
 
 /*******************
@@ -333,13 +394,15 @@ int DallasEPROM::scratchWrite(uint8_t* data, int length, unsigned int address) {
 	_wire->select(_addr);
 	_wire->write(WRITEMEMORY);
 	_wire->write((byte) address);
-	_wire->write((byte)(address >> 8));
+ 	if (_curModel->addrSize > 1) {
+		_wire->write((byte)(address >> 8));
+	}
 
 	// write "length" bytes to the scratchpad
 	for (int i = 0; i < length; i++)
 		_wire->write(data[i]);
 
-	if (_chip_model_list[_curModelIndex].name == "DS2430") {
+	if (_curModel->name == "DS2430") {
 		// Issue copy scratchpad with DS2430 auth byte
 		_wire->reset();
 		_wire->select(_addr);
@@ -370,20 +433,20 @@ int DallasEPROM::scratchWrite(uint8_t* data, int length, unsigned int address) {
 	_wire->depower();
 
 	// Check for success
-	if (_chip_model_list[_curModelIndex].name != "DS2430" && _wire->read() != 0xAA)
+	if (_curModel->name != "DS2430" && _wire->read() != 0xAA)
 		return COPY_FAILURE;
 
 	return 0;
 }
 
 bool DallasEPROM::isPageValid(int page) {
-	if (_curModelIndex >= 0 && page < _chip_model_list[_curModelIndex].pages)
+	if (_curModelIndex >= 0 && page < _curModel->pages)
 		return true;
 	return false;
 }
 
 bool DallasEPROM::isEPROMDevice() {
-	if (_curModelIndex >= 0 && _chip_model_list[_curModelIndex].isEPROM == true)
+	if (_curModelIndex >= 0 && _curModel->isEPROM == true)
 		return true;
 	return false;
 }

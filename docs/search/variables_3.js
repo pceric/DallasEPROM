@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['pages',['pages',['../structmodel__type.html#ab82163bd51f5e912324bfed64c54ffa3',1,'model_type']]]
+  ['name',['name',['../structmodel__type.html#a0b0fcd357ba2f37319ccecf1023d2ca8',1,'model_type']]]
 ];

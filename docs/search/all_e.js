@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['validaddress',['validAddress',['../class_dallas_e_p_r_o_m.html#aeb4dc6533e3b41974b0a836ef1987650',1,'DallasEPROM']]],
-  ['verifyresume',['VERIFYRESUME',['../_dallas_e_p_r_o_m_8h.html#a403de023a596c0d25711ad44a8cf40ba',1,'DallasEPROM.h']]]
+  ['unsupported_5fdevice',['UNSUPPORTED_DEVICE',['../group___e_r_r_o_r___g_r_o_u_p.html#gaea20c001543a37efc137796f42a2a259',1,'DallasEPROM.h']]],
+  ['unsupported_5fopp',['UNSUPPORTED_OPP',['../group___e_r_r_o_r___g_r_o_u_p.html#ga787ccf62500ca719ef1b1c924783c8d8',1,'DallasEPROM.h']]]
 ];

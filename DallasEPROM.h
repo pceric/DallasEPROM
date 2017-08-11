@@ -31,18 +31,22 @@
 #ifndef DallasEPROM_h
 #define DallasEPROM_h
 
-#define DALLASEPROMVERSION "1.3.0"
+#define DALLASEPROMVERSION "1.4.0"
 
 #include <inttypes.h>
 #include <OneWire.h>
 
 // OneWire commands
-#define READSTATUS      0xAA  // Read the status fields [EPROM] or the Scratchpad [EEPROM]
-#define VERIFYRESUME    0xA5  // Either verifies or resumes depending on EEPROM
-#define WRITESTATUS     0x55  // Write to the status fields [EPROM] or commit Scratchpad [EEPROM]
-#define READMEMORY      0xF0  // Read memory
-#define READMEMORYCRC   0xC3  // Read memory w CRC
 #define WRITEMEMORY     0x0F  // Write to EPROM or the Scratchpad
+#define WRITESTATUS     0x55  // Write to the status fields [EPROM] or commit Scratchpad [EEPROM]
+#define COPYLOCK        0x5A  // Performs a copy and lock on the application register
+#define READSTATUSREG   0x66  // Reads status register
+#define WRITEAPPREG     0x99  // Write to application register
+#define VERIFYRESUME    0xA5  // Either verifies or resumes depending on EEPROM
+#define READSTATUS      0xAA  // Read the status fields [EPROM] or the Scratchpad [EEPROM]
+#define READMEMORYCRC   0xC3  // Read memory w CRC or application register on DS2430
+#define READMEMORY      0xF0  // Read memory
+
 /**
  * @defgroup ERROR_GROUP Returned Error Codes
  *
@@ -53,6 +57,8 @@
 #define PAGE_LOCKED -3 //!< Page is currently locked
 #define BAD_INTEGRITY -4 //!< Failed scratchpad integrity check
 #define COPY_FAILURE -5 //!< Copy scratchpad to memory has failed
+#define APP_REG_LOCKED -6 //!< Application register is locked
+#define UNSUPPORTED_OPP -32 //!< Operation on selected chip is unsupported
 #define UNSUPPORTED_DEVICE -64 //!< Chip is unsupported
 #define DEVICE_DISCONNECTED -127 //!< Device has disconnected
 /** @} */
@@ -63,12 +69,14 @@
  * @param id 1 byte chip id.
  * @param name Name/model number of chip.
  * @param pages Total number of 32 byte pages supported by chip.
+ * @param addrSize Address size in bytes.
  * @param isEPROM Is this device an EPROM and not an EEPROM.
  */
 typedef struct {
 	const uint8_t id;
 	const char* name;
 	const int pages;
+	const int addrSize;
 	const bool isEPROM;
 } model_type;
 
@@ -181,6 +189,29 @@ public:
 	 */
 	bool isPageLocked(int page);
 
+	/**
+	 * Reads data from the 64 bit application register on the DS2430.
+	 *
+	 * @param pData Pointer to an 8 byte buffer to store the data.
+	 * @return 0 on success or @ref ERROR_GROUP
+	 */
+	int readAppReg(uint8_t* pData);
+
+	/**
+	 * Writes data to the 64 bit application register on the DS2430.
+	 *
+	 * @param pData Pointer to an 8 byte buffer containing the data.
+	 * @return 0 on success or @ref ERROR_GROUP
+	 */
+	int writeAppReg(uint8_t* pData);
+
+	/**
+	 * Checks to see if application register is locked.
+	 *
+	 * @return True if locked.
+	 */
+	bool isAppRegLocked();
+
 private:
 	OneWire* _wire;  // Pointer to OneWire v2.2 instance
 
@@ -188,7 +219,9 @@ private:
 
 	int _progPin;  // Arduino pin number to pulse when programming EPROMs
 
-	char _curModelIndex;  // Currently selected device from device table
+	char _curModelIndex;  // Index of device in device table
+
+	model_type* _curModel; // Currently selected device from device table
 
 	/**
 	 *  EEPROMs must use a scratch space to write data
